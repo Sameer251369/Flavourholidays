@@ -21,7 +21,7 @@ class Command(BaseCommand):
             name="Kashmir Valley",
             slug="kashmir-valley",
             description="Paradise on Earth: Alpine lakes, snow-clad peaks, pine forests, and iconic houseboats.",
-            cover_image="https://images.unsplash.com/photo-1595815771614-ade9d652a65d?q=80&w=1200&auto=format&fit=crop",
+            cover_image_url="https://images.unsplash.com/photo-1595815771614-ade9d652a65d?q=80&w=1200&auto=format&fit=crop",
             altitude_range="5,200 ft - 14,000 ft",
             best_time="March - November (Summer/Autumn) & Dec - Feb (Snow Skiing)"
         )
@@ -30,7 +30,7 @@ class Command(BaseCommand):
             name="Gurez & Border Frontiers",
             slug="gurez-frontier",
             description="The ultimate offbeat frontier: Pyramidal Habba Khatoon peak, Kishanganga river, and untouched wooden hamlets.",
-            cover_image="https://images.unsplash.com/photo-1566837945700-30057527ade0?q=80&w=1200&auto=format&fit=crop",
+            cover_image_url="https://images.unsplash.com/photo-1566837945700-30057527ade0?q=80&w=1200&auto=format&fit=crop",
             altitude_range="8,000 ft - 11,672 ft (Razdan Pass)",
             best_time="May - October"
         )
@@ -39,7 +39,7 @@ class Command(BaseCommand):
             name="Leh & Ladakh",
             slug="leh-ladakh",
             description="High-altitude desert wonderland: Cold desert dunes, turquoise lakes, world's highest motorable passes, and ancient monasteries.",
-            cover_image="https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?q=80&w=1200&auto=format&fit=crop",
+            cover_image_url="https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?q=80&w=1200&auto=format&fit=crop",
             altitude_range="11,500 ft - 19,000 ft",
             best_time="May - September"
         )
@@ -56,7 +56,7 @@ class Command(BaseCommand):
             duration_nights=5,
             starting_price=17999,
             difficulty="Chill",
-            cover_image="https://images.unsplash.com/photo-1595815771614-ade9d652a65d?q=80&w=1200&auto=format&fit=crop",
+            cover_image_url="https://images.unsplash.com/photo-1595815771614-ade9d652a65d?q=80&w=1200&auto=format&fit=crop",
             gallery_urls=[
                 "https://images.unsplash.com/photo-1595815771614-ade9d652a65d?q=80&w=800",
                 "https://images.unsplash.com/photo-1566837945700-30057527ade0?q=80&w=800",
@@ -169,7 +169,7 @@ class Command(BaseCommand):
             duration_nights=4,
             starting_price=19999,
             difficulty="Moderate",
-            cover_image="https://images.unsplash.com/photo-1566837945700-30057527ade0?q=80&w=1200&auto=format&fit=crop",
+            cover_image_url="https://images.unsplash.com/photo-1566837945700-30057527ade0?q=80&w=1200&auto=format&fit=crop",
             gallery_urls=[
                 "https://images.unsplash.com/photo-1566837945700-30057527ade0?q=80&w=800",
                 "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800"
@@ -253,7 +253,7 @@ class Command(BaseCommand):
             duration_nights=6,
             starting_price=24999,
             difficulty="Extreme",
-            cover_image="https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?q=80&w=1200&auto=format&fit=crop",
+            cover_image_url="https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?q=80&w=1200&auto=format&fit=crop",
             gallery_urls=[
                 "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?q=80&w=800",
                 "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800"
@@ -346,7 +346,7 @@ class Command(BaseCommand):
             category="Travel Hacks",
             read_time="4 min read",
             author="Sameer (Flavour Lead)",
-            cover_image="https://images.unsplash.com/photo-1595815771614-ade9d652a65d?q=80&w=1200&auto=format&fit=crop",
+            cover_image_url="https://images.unsplash.com/photo-1595815771614-ade9d652a65d?q=80&w=1200&auto=format&fit=crop",
             excerpt="Planning your Kashmir trip? Here's everything Gen Z travelers need to know about prepaid vs postpaid SIMs, Gurez permits, and how to skip pony scams in Pahalgam.",
             content="""
 ### 1. The SIM Card Rule (Crucial!)
@@ -370,7 +370,7 @@ Gondola tickets sell out weeks in advance! Always book Phase 2 (Apharwat Peak) a
             category="Offbeat Gems",
             read_time="5 min read",
             author="Aisha (Travel Creator)",
-            cover_image="https://images.unsplash.com/photo-1566837945700-30057527ade0?q=80&w=1200&auto=format&fit=crop",
+            cover_image_url="https://images.unsplash.com/photo-1566837945700-30057527ade0?q=80&w=1200&auto=format&fit=crop",
             excerpt="Tired of crowded Instagram spots? Gurez offers wooden log cabins, zero crowd, 11,672ft pass hairpins, and starry nights by Kishanganga River.",
             content="""
 Gurez Valley is where time stands still. Located just 123 km from Srinagar, crossing the formidable Razdan Pass at 11,672ft opens doors to a secluded paradise.
