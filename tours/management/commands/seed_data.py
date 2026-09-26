@@ -1,10 +1,29 @@
+from django.db import transaction
 from django.core.management.base import BaseCommand
 from tours.models import Destination, Tour, TourCheckpoint, BlogPost, Vehicle, Testimonial, FAQ
 
 class Command(BaseCommand):
     help = "Seed database with rich Kashmir & Ladakh Gen-Z tour itineraries, checkpoints, blogs, vehicles, and FAQs."
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Delete existing tour content and replace it with the seed data.',
+        )
+
+    @transaction.atomic
     def handle(self, *args, **options):
+        seeded_models = (
+            Destination, Tour, TourCheckpoint, BlogPost, Vehicle, Testimonial, FAQ
+        )
+        if not options['force'] and any(model.objects.exists() for model in seeded_models):
+            self.stdout.write(self.style.WARNING(
+                'Existing content found; skipping seed to preserve production data. '
+                'Use --force only when you intend to replace it.'
+            ))
+            return
+
         self.stdout.write(self.style.SUCCESS("Starting database seed..."))
 
         # Clear existing
@@ -366,7 +385,7 @@ Gondola tickets sell out weeks in advance! Always book Phase 2 (Apharwat Peak) a
 
         b2 = BlogPost.objects.create(
             title="Why Gurez Valley is the Ultimate Gen-Z Offbeat Destination in 2026",
-            slug="why-gurez-valley-is-ultimate-offbeat-destination-2026",
+            slug="why-gurez-offbeat-destination-2026",
             category="Offbeat Gems",
             read_time="5 min read",
             author="Aisha (Travel Creator)",
