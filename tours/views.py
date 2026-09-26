@@ -63,18 +63,9 @@ class BookingSearchViewSet(viewsets.ModelViewSet):
         booking_search = serializer.save()
         selected_tour = booking_search.selected_tour
 
-        # Query all tours matching the destination or keyword
-        dest_name = selected_tour.destination.name if selected_tour.destination else selected_tour.title
-        dest_keyword = dest_name.split()[0] if dest_name else ""
-
         matching_tours = Tour.objects.filter(
-            models.Q(destination=selected_tour.destination) |
-            models.Q(destination__name__icontains=dest_keyword) |
-            models.Q(title__icontains=dest_keyword)
-        ).distinct().select_related('destination').prefetch_related('checkpoints')
-
-        if not matching_tours.exists():
-            matching_tours = Tour.objects.all().select_related('destination').prefetch_related('checkpoints')
+            destination=selected_tour.destination
+        ).select_related('destination').prefetch_related('checkpoints')
 
         blogs = BlogPost.objects.filter(related_tour__in=matching_tours).order_by('-created_at')
 

@@ -6,22 +6,29 @@ from .models import BlogPost, BookingSearch, Destination, Tour
 class BookingSearchTests(APITestCase):
 	def setUp(self):
 		destination = Destination.objects.create(
-			name='Kashmir Valley', slug='kashmir-valley', description='Kashmir', cover_image='https://example.com/kashmir.jpg'
+			name='Kashmir Valley', slug='kashmir-valley', description='Kashmir', cover_image_url='https://example.com/kashmir.jpg'
 		)
 		self.tour = Tour.objects.create(
 			title='Kashmir Tour', slug='kashmir-tour', destination=destination,
-			cover_image='https://example.com/tour.jpg', overview='Kashmir package'
+			cover_image_url='https://example.com/tour.jpg', overview='Kashmir package'
+		)
+		self.additional_tour = Tour.objects.create(
+			title='Another Kashmir Tour', slug='another-kashmir-tour', destination=destination,
+			cover_image_url='https://example.com/another-tour.jpg', overview='Another Kashmir package'
+		)
+		other_destination = Destination.objects.create(
+			name='Leh & Ladakh', slug='leh-ladakh', description='Ladakh'
 		)
 		other_tour = Tour.objects.create(
-			title='Other Tour', slug='other-tour', destination=destination,
-			cover_image='https://example.com/other.jpg', overview='Other package'
+			title='Other Tour', slug='other-tour', destination=other_destination,
+			cover_image_url='https://example.com/other.jpg', overview='Other package'
 		)
 		BlogPost.objects.create(
-			title='Kashmir Guide', slug='kashmir-guide', cover_image='https://example.com/blog.jpg',
+			title='Kashmir Guide', slug='kashmir-guide', cover_image_url='https://example.com/blog.jpg',
 			excerpt='Guide', content='Guide content', related_tour=self.tour
 		)
 		BlogPost.objects.create(
-			title='Other Guide', slug='other-guide', cover_image='https://example.com/other-blog.jpg',
+			title='Other Guide', slug='other-guide', cover_image_url='https://example.com/other-blog.jpg',
 			excerpt='Guide', content='Other content', related_tour=other_tour
 		)
 
@@ -36,7 +43,10 @@ class BookingSearchTests(APITestCase):
 		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 		self.assertEqual(BookingSearch.objects.count(), 1)
 		self.assertEqual(response.data['search']['people'], 3)
-		self.assertEqual([tour['id'] for tour in response.data['tours']], [self.tour.id])
+		self.assertEqual(
+			[tour['id'] for tour in response.data['tours']],
+			[self.tour.id, self.additional_tour.id]
+		)
 		self.assertEqual([blog['title'] for blog in response.data['blogs']], ['Kashmir Guide'])
 
 	def test_booking_search_rejects_checkout_before_checkin(self):
