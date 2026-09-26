@@ -211,12 +211,6 @@ cloudinary_is_configured = bool(CLOUDINARY_URL) or all((
 
 if cloudinary_is_configured:
 
-    if 'cloudinary_storage' not in INSTALLED_APPS:
-        INSTALLED_APPS.insert(0, 'cloudinary_storage')
-
-    if 'cloudinary' not in INSTALLED_APPS:
-        INSTALLED_APPS.append('cloudinary')
-
     if all((CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET)):
         CLOUDINARY_STORAGE = {
             'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
