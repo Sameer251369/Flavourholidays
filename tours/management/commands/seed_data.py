@@ -45,13 +45,13 @@ class Command(BaseCommand):
             best_time="March - November (Summer/Autumn) & Dec - Feb (Snow Skiing)"
         )
 
-        dest_gurez = Destination.objects.create(
-            name="Gurez & Border Frontiers",
-            slug="gurez-frontier",
-            description="The ultimate offbeat frontier: Pyramidal Habba Khatoon peak, Kishanganga river, and untouched wooden hamlets.",
-            cover_image_url="https://images.unsplash.com/photo-1566837945700-30057527ade0?q=80&w=1200&auto=format&fit=crop",
-            altitude_range="8,000 ft - 11,672 ft (Razdan Pass)",
-            best_time="May - October"
+        dest_kargil = Destination.objects.create(
+            name="Kargil",
+            slug="kargil",
+            description="A high-mountain gateway between Kashmir and Leh, with the Drass valley, Kargil town, and the Suru River route.",
+            cover_image_url="https://images.pexels.com/photos/31029367/pexels-photo-31029367.jpeg?auto=compress&cs=tinysrgb&w=1600",
+            altitude_range="8,780 ft - 11,575 ft (Zoji La)",
+            best_time="May - October, subject to road access"
         )
 
         dest_ladakh = Destination.objects.create(
@@ -177,33 +177,35 @@ class Command(BaseCommand):
         )
 
 
-        # Tour 2: Offbeat Gurez Valley Frontier Expedition
+        # Tour 2: Kargil & Suru Valley Mountain Expedition
         t2 = Tour.objects.create(
-            title="Offbeat Gurez Valley Frontier Expedition",
-            slug="offbeat-gurez-valley-frontier",
-            destination=dest_gurez,
-            tagline="Untouched Himalayan Wilderness & Border Village Vibes 🏔️⚡",
+            title="Kargil & Suru Valley Mountain Expedition",
+            slug="kargil-suru-valley-expedition",
+            destination=dest_kargil,
+            tagline="High mountain passes, Suru Valley rivers & stories from the Himalayas 🏔️",
             vibe_tag="#OffbeatGenZ",
             duration_days=5,
             duration_nights=4,
             starting_price=19999,
             difficulty="Moderate",
-            cover_image_url="https://images.unsplash.com/photo-1566837945700-30057527ade0?q=80&w=1200&auto=format&fit=crop",
+            cover_image_url="https://images.pexels.com/photos/31029367/pexels-photo-31029367.jpeg?auto=compress&cs=tinysrgb&w=1600",
             gallery_urls=[
-                "https://images.unsplash.com/photo-1566837945700-30057527ade0?q=80&w=800",
-                "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800"
+                "https://images.pexels.com/photos/31029367/pexels-photo-31029367.jpeg?auto=compress&cs=tinysrgb&w=1200",
+                "https://images.pexels.com/photos/33965719/pexels-photo-33965719.jpeg?auto=compress&cs=tinysrgb&w=1200",
+                "https://images.pexels.com/photos/37835745/pexels-photo-37835745.jpeg?auto=compress&cs=tinysrgb&w=1200"
             ],
-            overview="Escape the crowded tourist trails. Cross the high-altitude Razdan Pass (11,672ft) into the legendary Gurez Valley — home to the Shina tribe, wooden log houses, and the iconic Habba Khatoon mountain peak.",
+            overview="Travel from Srinagar to Kargil through the mountain landscapes of Sonamarg and Drass, then explore the Suru Valley and the region's layered history with a locally planned route.",
             inclusions=[
-                "Inner Line Permit (ILP) Processing for Gurez Border Zone",
-                "Mahindra Thar 4WD / Scorpio 4x4 Vehicle for Mountain Passes",
-                "Homestay & Wooden Cabin Stay with Local Shina Hosts",
-                "Bonfire, Campfire Barbecue & Cultural Storytelling Session",
-                "All Meals (Home-cooked organic mountain food)"
+                "Private 4WD transfer for mountain roads",
+                "Four nights of comfortable stays along the route",
+                "Kargil War Memorial visit in Drass",
+                "Guided Suru Valley and Sankoo day excursion",
+                "Local host support and route planning"
             ],
             exclusions=[
-                "Personal expenses",
-                "Travel insurance"
+                "Airfare or train tickets to Srinagar",
+                "Meals not listed in the final itinerary",
+                "Personal expenses and travel insurance"
             ],
             is_featured=True
         )
@@ -211,53 +213,66 @@ class Command(BaseCommand):
         TourCheckpoint.objects.create(
             tour=t2,
             day_number=1,
-            title="Srinagar to Gurez via Razdan Pass",
-            location_name="Razdan Pass (11,672 ft)",
-            altitude="11,672 ft",
-            description="Drive past Wular Lake up winding hairpins to Razdan Pass. Panoramic view of Harmukh Peak range. Descend into Dawar, the central hub of Gurez Valley.",
-            insta_spot="Razdan Pass Altitude Board & Harmukh Glacier Vista",
-            vibe_highlight="Standing above clouds at 11,672ft with 4x4 Thar parked at the pass",
-            image_url="https://images.unsplash.com/photo-1566837945700-30057527ade0?q=80&w=800",
-            activities=["Razdan Pass Crossing", "Wular Lake Viewpoint", "Border Permit Checkpoint", "Dawar Homestay Check-in"]
+            title="Srinagar to Kargil via Sonamarg & Drass",
+            location_name="Zoji La, Drass & Kargil",
+            altitude="11,575 ft at Zoji La",
+            description="Set out from Srinagar through Sonamarg and cross the Zoji La route to Drass before continuing to Kargil. Stops are planned around road and weather conditions.",
+            insta_spot="Mountain views from the Zoji La road",
+            vibe_highlight="A full-day Himalayan drive from Kashmir into Kargil",
+            image_url="https://images.pexels.com/photos/31029367/pexels-photo-31029367.jpeg?auto=compress&cs=tinysrgb&w=1200",
+            activities=["Sonamarg stop", "Zoji La crossing (when open)", "Drass viewpoint", "Kargil check-in"]
         )
 
         TourCheckpoint.objects.create(
             tour=t2,
             day_number=2,
-            title="Habba Khatoon Spring & Sunset Peak View",
-            location_name="Habba Khatoon Mountain",
-            altitude="9,500 ft",
-            description="Explore the pyramid-shaped Habba Khatoon peak, named after the famous 16th-century poetess of Kashmir. Drink crystal clear water from the Habba Khatoon fresh spring.",
-            insta_spot="Reflections of Habba Khatoon Pyramid Peak in Kishanganga River",
-            vibe_highlight="Chilling by Kishanganga River with crystal turquoise water",
-            image_url="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800",
-            activities=["Habba Khatoon Spring Trek", "Kishanganga Riverbank Camping", "Sunset Photography"]
+            title="Drass Valley & Kargil War Memorial",
+            location_name="Drass & Kargil",
+            altitude="10,800 ft",
+            description="Visit the Kargil War Memorial at Drass, then take time for the surrounding mountain viewpoints and local stories before returning to Kargil.",
+            insta_spot="The memorial grounds with the mountains of Drass",
+            vibe_highlight="A reflective day grounded in the history of the region",
+            image_url="https://images.pexels.com/photos/33965719/pexels-photo-33965719.jpeg?auto=compress&cs=tinysrgb&w=1200",
+            activities=["Kargil War Memorial", "Drass town stop", "Mountain viewpoints", "Return to Kargil"]
         )
 
         TourCheckpoint.objects.create(
             tour=t2,
             day_number=3,
-            title="Tulail Valley & Last Border Village of Bagtore",
-            location_name="Tulail Valley & Sheikhpura",
-            altitude="8,800 ft",
-            description="Explore deeper into Tulail Valley along wooden log cabin hamlets like Sheikhpura and Bagtore. Experience authentic Shina culture, tradition, and warm border village hospitality.",
-            insta_spot="Traditional Wooden Log Cabins of Sheikhpura",
-            vibe_highlight="Interacting with local villagers and drinking butter tea in log homes",
-            image_url="https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=800",
-            activities=["Tulail Valley Off-roading", "Wooden Village Exploration", "Local Shina Cuisine Dinner"]
+            title="Suru Valley & Sankoo",
+            location_name="Sankoo, Suru Valley",
+            altitude="9,500 ft",
+            description="Follow the Suru River south through green valley settlements and mountain scenery. Pause around Sankoo for a relaxed local visit before returning to Kargil.",
+            insta_spot="Suru River framed by the valley peaks",
+            vibe_highlight="A slower day among riverside villages and wide Himalayan views",
+            image_url="https://images.pexels.com/photos/37835745/pexels-photo-37835745.jpeg?auto=compress&cs=tinysrgb&w=1200",
+            activities=["Suru River drive", "Sankoo village visit", "Local lunch stop", "Scenic return to Kargil"]
         )
 
         TourCheckpoint.objects.create(
             tour=t2,
             day_number=4,
-            title="Return to Srinagar via Wular Lake Sunset",
-            location_name="Wular Lake Vantage Point",
-            altitude="5,200 ft",
-            description="Say goodbye to Gurez. Re-cross Razdan Pass and pause at Wular Lake — one of Asia's largest freshwater lakes — for a magnificent sunset tea break.",
-            insta_spot="Wular Lake Sunset Horizon",
-            vibe_highlight="Golden hour reflections over freshwater expanse",
-            image_url="https://images.unsplash.com/photo-1595815771614-ade9d652a65d?q=80&w=800",
-            activities=["Return Drive", "Wular Lake Sunset Tea", "Srinagar Hotel Check-in"]
+            title="Kargil Old Town & Local Life",
+            location_name="Kargil town",
+            altitude="8,780 ft",
+            description="Spend an unhurried day exploring Kargil town, its market and nearby viewpoints. Your host can tailor the pace around local opening times and road conditions.",
+            insta_spot="Evening light over the Kargil valley",
+            vibe_highlight="Meet local makers and settle into the rhythm of town",
+            image_url="https://images.pexels.com/photos/31029368/pexels-photo-31029368.jpeg?auto=compress&cs=tinysrgb&w=1200",
+            activities=["Kargil bazaar walk", "Local food stop", "Nearby viewpoint", "Farewell dinner"]
+        )
+
+        TourCheckpoint.objects.create(
+            tour=t2,
+            day_number=5,
+            title="Kargil to Srinagar via Drass",
+            location_name="Kargil, Drass & Sonamarg",
+            altitude="11,575 ft at Zoji La",
+            description="Retrace the mountain road through Drass and Sonamarg to Srinagar, with comfort stops and timing adjusted to current road conditions.",
+            insta_spot="Last mountain views on the Kargil–Srinagar road",
+            vibe_highlight="A scenic return through the valleys that connect Ladakh and Kashmir",
+            image_url="https://images.pexels.com/photos/31029367/pexels-photo-31029367.jpeg?auto=compress&cs=tinysrgb&w=1200",
+            activities=["Early departure", "Drass tea stop", "Sonamarg rest stop", "Srinagar drop-off"]
         )
 
 
@@ -366,15 +381,15 @@ class Command(BaseCommand):
             read_time="4 min read",
             author="Sameer (Flavour Lead)",
             cover_image_url="https://images.unsplash.com/photo-1595815771614-ade9d652a65d?q=80&w=1200&auto=format&fit=crop",
-            excerpt="Planning your Kashmir trip? Here's everything Gen Z travelers need to know about prepaid vs postpaid SIMs, Gurez permits, and how to skip pony scams in Pahalgam.",
+            excerpt="Planning a Kashmir trip? Here's what to know about staying connected, checking mountain-road conditions, and making time for Kargil's historic stops.",
             content="""
 ### 1. The SIM Card Rule (Crucial!)
 Outside prepaid SIM cards (Airtel, Jio, Vi) **WILL NOT WORK** in Jammu & Kashmir due to security regulations. You must have:
 - A postpaid SIM card from your home state, OR
 - Buy a local tourist SIM upon landing at Srinagar airport (takes 10 mins with Aadhaar card).
 
-### 2. Inner Line Permits (Gurez & Bangus Valley)
-Places like Gurez Valley and Bangus Valley lie close to the Line of Control. While regular tourist spots like Gulmarg and Pahalgam need no permits, **Gurez requires an Inner Line Permit (ILP)**. Flavour Holidays processes all ILPs seamlessly for our guests!
+### 2. Check road access before you go
+Mountain routes can change with weather and seasonal closures. Confirm Zoji La access and any requirements for restricted-area stops with your local host before departure.
 
 ### 3. Gulmarg Gondola Booking Hack
 Gondola tickets sell out weeks in advance! Always book Phase 2 (Apharwat Peak) along with Phase 1. If tickets are unavailable, ask our Flavour host for official VIP line assistance.
@@ -384,20 +399,22 @@ Gondola tickets sell out weeks in advance! Always book Phase 2 (Apharwat Peak) a
         )
 
         b2 = BlogPost.objects.create(
-            title="Why Gurez Valley is the Ultimate Gen-Z Offbeat Destination in 2026",
-            slug="why-gurez-offbeat-destination-2026",
+            title="A First-Timer's Guide to Kargil & Suru Valley",
+            slug="kargil-suru-valley-first-timer-guide",
             category="Offbeat Gems",
             read_time="5 min read",
             author="Aisha (Travel Creator)",
-            cover_image_url="https://images.unsplash.com/photo-1566837945700-30057527ade0?q=80&w=1200&auto=format&fit=crop",
-            excerpt="Tired of crowded Instagram spots? Gurez offers wooden log cabins, zero crowd, 11,672ft pass hairpins, and starry nights by Kishanganga River.",
+            cover_image_url="https://images.pexels.com/photos/31029367/pexels-photo-31029367.jpeg?auto=compress&cs=tinysrgb&w=1200",
+            excerpt="Plan a thoughtful Kargil stay with notes on the Drass memorial, Suru Valley, mountain-road timing and what to confirm locally.",
             content="""
-Gurez Valley is where time stands still. Located just 123 km from Srinagar, crossing the formidable Razdan Pass at 11,672ft opens doors to a secluded paradise.
+Kargil sits on the mountain road between Kashmir and Leh, with the Suru River valley branching south from town. Build in time for the journey itself and keep the daily plan flexible around road and weather conditions.
 
-#### Highlights of Gurez:
-- **Habba Khatoon Mountain**: A massive pyramidal mountain named after Kashmir's legendary poetess.
-- **Wooden Architecture**: Villages made of solid cedar and pine log cabins.
-- **Kishanganga River**: Crystal turquoise waters perfect for riverside camping and trout fishing.
+#### Ideas for your Kargil stay:
+- **Drass**: Visit the Kargil War Memorial and nearby viewpoints.
+- **Suru Valley**: Take a scenic drive toward Sankoo and the riverside settlements.
+- **Kargil town**: Leave space for the bazaar, local food and conversations with your host.
+
+Check current Zoji La access and confirm any restrictions that apply to optional border-area stops before travel.
             """,
             vibe_tag="#OffbeatVibes",
             related_tour=t2
@@ -408,8 +425,8 @@ Gurez Valley is where time stands still. Located just 123 km from Srinagar, cros
             name="Mahindra Thar / Scorpio 4WD",
             model_name="Thar 4x4 / Scorpio N",
             capacity_passengers="4 Passengers",
-            terrain_type="Winter Snow & High Altitude Off-Road Passes (Razdan, Khardung La)",
-            description="The ultimate thrill machine for snow routes between Tangmarg & Gulmarg, Gurez Valley passes, and rough Ladakh terrains.",
+            terrain_type="Winter Snow & High Altitude Mountain Roads (Zoji La, Khardung La)",
+            description="A capable 4WD for mountain routes between Tangmarg, Kargil and Ladakh, with local drivers familiar with changing road conditions.",
             image_url="https://flavourholidays.com/wp-content/uploads/2026/08/thar-1.png",
             badge="4x4 Snow Beast ⚡"
         )
@@ -448,9 +465,9 @@ Gurez Valley is where time stands still. Located just 123 km from Srinagar, cros
             client_name="Rohan & Squad",
             trip_type="Gen-Z Thrill Group",
             rating=5,
-            comment="Gurez Valley was unreal! Crossings at Razdan Pass in our Thar 4x4 arranged by Flavour Holidays felt like a movie scene. 100/10 experience!",
+            comment="Kargil and the Suru Valley were unforgettable. The mountain drive and local stops arranged by Flavour Holidays made the whole trip feel effortless.",
             avatar_url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200",
-            location_visited="Gurez Valley & Razdan Pass"
+            location_visited="Kargil & Suru Valley"
         )
 
         # 6. FAQs
@@ -461,8 +478,8 @@ Gurez Valley is where time stands still. Located just 123 km from Srinagar, cros
         )
 
         FAQ.objects.create(
-            question="Are inner line permits required for offbeat places like Gurez or Bangus Valley?",
-            answer="Yes, due to proximity to the border zone, special permits are required for Gurez and Bangus. Flavour Holidays handles all permit arrangements seamlessly for our guests.",
+            question="Do I need permits to visit Kargil and Suru Valley?",
+            answer="Kargil is on the main Srinagar–Leh route, though some restricted or border-area stops may require advance permission. Our local team confirms requirements for your exact itinerary.",
             category="Permits & Access"
         )
 
