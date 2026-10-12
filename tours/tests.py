@@ -1,7 +1,20 @@
+from io import BytesIO
+
+import cloudinary.exceptions
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.files.storage import FileSystemStorage
 from django.urls import reverse
+from django.test import TestCase, override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
 from .models import BlogPost, BookingSearch, Destination, Tour
+
+
+class FailingUploadStorage(FileSystemStorage):
+	def _save(self, name, content):
+		raise cloudinary.exceptions.Error('Test upload failure')
+
 
 class BookingSearchTests(APITestCase):
 	def setUp(self):
@@ -71,3 +84,102 @@ class BookingSearchTests(APITestCase):
 
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 		self.assertEqual(BookingSearch.objects.count(), 0)
+
+
+@override_settings(STORAGES={
+	'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+	'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+})
+class TourAdminSaveTests(TestCase):
+	def setUp(self):
+		destination = Destination.objects.create(
+			name='Kashmir Valley', slug='admin-kashmir', description='Kashmir'
+		)
+		self.destination = destination
+		admin_user = get_user_model().objects.create_superuser(
+			username='admin', email='admin@example.com', password='test-password'
+		)
+		self.client.force_login(admin_user)
+
+	def make_tour_data(self, slug, cover_image_file=None, checkpoint_image_file=None):
+		data = {
+			'title': 'Admin Test Tour',
+			'slug': slug,
+			'destination': self.destination.pk,
+			'tagline': 'A mountain route',
+			'vibe_tag': '#Test',
+			'duration_days': 2,
+			'duration_nights': 1,
+			'starting_price': 1000,
+			'difficulty': 'Easy',
+			'cover_image_url': 'https://example.com/tour-cover.jpg',
+			'gallery_urls': '[]',
+			'overview': 'A test route.',
+			'inclusions': 'Guide',
+			'exclusions': 'Flights',
+			'checkpoints-TOTAL_FORMS': '1',
+			'checkpoints-INITIAL_FORMS': '0',
+			'checkpoints-MIN_NUM_FORMS': '0',
+			'checkpoints-MAX_NUM_FORMS': '1000',
+			'checkpoints-0-day_number': '1',
+			'checkpoints-0-title': 'Arrival',
+			'checkpoints-0-location_name': 'Srinagar',
+			'checkpoints-0-altitude': '',
+			'checkpoints-0-description': 'Arrive and check in.',
+			'checkpoints-0-insta_spot': '',
+			'checkpoints-0-vibe_highlight': '',
+			'checkpoints-0-image_url': '',
+			'checkpoints-0-activities': 'Walk',
+			'is_featured': 'on',
+			'_save': 'Save',
+		}
+		if cover_image_file:
+			data['cover_image_file'] = cover_image_file
+		if checkpoint_image_file:
+			data['checkpoints-0-image_file'] = checkpoint_image_file
+		return data
+
+	def post_tour(self, slug, **images):
+		return self.client.post(
+			reverse('admin:tours_tour_add'),
+			self.make_tour_data(slug, **images),
+			follow=True,
+		)
+
+	def make_test_image(self, name):
+		from PIL import Image
+
+		image_file = BytesIO()
+		Image.new('RGB', (1, 1), color='white').save(image_file, format='PNG')
+		return SimpleUploadedFile(name, image_file.getvalue(), content_type='image/png')
+
+	def test_tour_and_checkpoint_can_be_saved_in_admin(self):
+		response = self.post_tour('admin-test-tour')
+
+		self.assertEqual(response.status_code, 200)
+		saved_tour = Tour.objects.get(slug='admin-test-tour')
+		self.assertEqual(saved_tour.checkpoints.count(), 1)
+
+	@override_settings(STORAGES={
+		'default': {'BACKEND': 'tours.tests.FailingUploadStorage'},
+		'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+	})
+	def test_tour_and_checkpoint_save_when_image_storage_fails(self):
+		response = self.post_tour(
+			'admin-image-failure-tour',
+			cover_image_file=self.make_test_image('cover.png'),
+			checkpoint_image_file=self.make_test_image('checkpoint.png'),
+		)
+
+		self.assertEqual(response.status_code, 200)
+		saved_tour = Tour.objects.get(slug='admin-image-failure-tour')
+		checkpoint = saved_tour.checkpoints.get()
+		self.assertFalse(saved_tour.cover_image_file)
+		self.assertFalse(checkpoint.image_file)
+		self.assertEqual(saved_tour.cover_image, 'https://example.com/tour-cover.jpg')
+		self.assertContains(response, 'could not be uploaded')
+		api_response = self.client.get(reverse('tour-list'))
+		published_tour = next(
+			tour for tour in api_response.data if tour['slug'] == 'admin-image-failure-tour'
+		)
+		self.assertEqual(published_tour['cover_image'], 'https://example.com/tour-cover.jpg')

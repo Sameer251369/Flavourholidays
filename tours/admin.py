@@ -1,7 +1,16 @@
 import json
+import logging
+import cloudinary.exceptions
+import requests.exceptions
 from django.contrib import admin
 from django import forms
+from django.contrib import messages
+from django.db import transaction
 from .models import Destination, Tour, TourCheckpoint, BlogPost, Vehicle, Inquiry, Testimonial, FAQ
+
+logger = logging.getLogger(__name__)
+IMAGE_STORAGE_ERRORS = (cloudinary.exceptions.Error, requests.exceptions.RequestException)
+
 
 def parse_list_input(val):
     if not val:
@@ -98,6 +107,54 @@ class TourAdmin(admin.ModelAdmin):
         }),
     )
 
+    def save_model(self, request, obj, form, change):
+        previous_image = form.initial.get('cover_image_file')
+        previous_image_name = getattr(previous_image, 'name', previous_image) or ''
+        try:
+            with transaction.atomic():
+                super().save_model(request, obj, form, change)
+        except IMAGE_STORAGE_ERRORS:
+            if not form.files.get(form.add_prefix('cover_image_file')):
+                raise
+
+            logger.exception("Tour cover image upload failed; saving the tour without the new image.")
+            obj.cover_image_file = previous_image_name or None
+            form.cleaned_data['cover_image_file'] = previous_image_name or None
+            messages.warning(
+                request,
+                "The tour was saved, but its new cover image could not be uploaded. "
+                "The previous image or the cover image URL will be used instead."
+            )
+            super().save_model(request, obj, form, change)
+
+    def save_formset(self, request, form, formset, change):
+        try:
+            with transaction.atomic():
+                super().save_formset(request, form, formset, change)
+        except IMAGE_STORAGE_ERRORS:
+            failed_image_forms = [
+                inline_form
+                for inline_form in formset.forms
+                if inline_form.files.get(inline_form.add_prefix('image_file'))
+            ]
+            if not failed_image_forms:
+                raise
+
+            logger.exception("Tour checkpoint image upload failed; saving checkpoints without new images.")
+            for inline_form in failed_image_forms:
+                previous_image = inline_form.initial.get('image_file')
+                if hasattr(previous_image, 'name'):
+                    previous_image = previous_image.name
+                inline_form.instance.image_file = previous_image or None
+                inline_form.cleaned_data['image_file'] = previous_image or None
+
+            super().save_formset(request, form, formset, change)
+            messages.warning(
+                request,
+                "The tour checkpoints were saved, but one or more new checkpoint images "
+                "could not be uploaded. Previous images were kept where available."
+            )
+
 @admin.register(TourCheckpoint)
 class TourCheckpointAdmin(admin.ModelAdmin):
     form = TourCheckpointAdminForm
@@ -139,5 +196,3 @@ class FAQAdmin(admin.ModelAdmin):
     list_display = ('question', 'category')
     list_filter = ('category',)
     search_fields = ('question', 'answer')
-
-
