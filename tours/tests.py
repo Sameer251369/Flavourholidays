@@ -17,7 +17,7 @@ class BookingSearchTests(APITestCase):
 			cover_image_url='https://example.com/another-tour.jpg', overview='Another Kashmir package'
 		)
 		other_destination = Destination.objects.create(
-			name='Leh & Ladakh', slug='leh-ladakh', description='Ladakh'
+			name='Leh & Ladakh', slug='test-leh-ladakh', description='Ladakh'
 		)
 		other_tour = Tour.objects.create(
 			title='Other Tour', slug='other-tour', destination=other_destination,
@@ -31,6 +31,18 @@ class BookingSearchTests(APITestCase):
 			title='Other Guide', slug='other-guide', cover_image_url='https://example.com/other-blog.jpg',
 			excerpt='Guide', content='Other content', related_tour=other_tour
 		)
+
+	def test_ladakh_tour_is_available(self):
+		response = self.client.get(reverse('tour-list'))
+
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		ladakh_tour = next(
+			(tour for tour in response.data if tour['slug'] == 'leh-ladakh-high-altitude-thrill'),
+			None
+		)
+		self.assertIsNotNone(ladakh_tour)
+		self.assertEqual(ladakh_tour['destination_name'], 'Leh & Ladakh')
+		self.assertEqual(len(ladakh_tour['checkpoints']), 5)
 
 	def test_booking_search_is_saved_and_filters_results(self):
 		response = self.client.post(reverse('booking-search-list'), {
