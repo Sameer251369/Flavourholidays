@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -36,6 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third party
+    'cloudinary_storage',
+    'cloudinary',
     'rest_framework',
     'corsheaders',
 
@@ -190,24 +193,41 @@ MEDIA_ROOT = BASE_DIR / 'media'
 CLOUDINARY_CLOUD_NAME = os.environ.get(
     'CLOUDINARY_CLOUD_NAME',
     ''
-)
+).strip()
 
 CLOUDINARY_API_KEY = os.environ.get(
     'CLOUDINARY_API_KEY',
     ''
-)
+).strip()
 
 CLOUDINARY_API_SECRET = os.environ.get(
     'CLOUDINARY_API_SECRET',
     ''
-)
+).strip()
 
-CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL', '')
+CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL', '').strip()
 cloudinary_is_configured = bool(CLOUDINARY_URL) or all((
     CLOUDINARY_CLOUD_NAME,
     CLOUDINARY_API_KEY,
     CLOUDINARY_API_SECRET,
 ))
+
+if not CLOUDINARY_URL and any((
+    CLOUDINARY_CLOUD_NAME,
+    CLOUDINARY_API_KEY,
+    CLOUDINARY_API_SECRET,
+)) and not cloudinary_is_configured:
+    raise ImproperlyConfigured(
+        'Set CLOUDINARY_URL or all of CLOUDINARY_CLOUD_NAME, '
+        'CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.'
+    )
+
+if not DEBUG and not cloudinary_is_configured:
+    raise ImproperlyConfigured(
+        'Cloudinary must be configured for production media uploads. '
+        'Set CLOUDINARY_URL or all three CLOUDINARY_CLOUD_NAME, '
+        'CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET variables.'
+    )
 
 if cloudinary_is_configured:
 

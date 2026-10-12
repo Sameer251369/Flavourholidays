@@ -1,4 +1,5 @@
 from io import BytesIO
+from unittest.mock import patch
 
 import cloudinary.exceptions
 from django.contrib.auth import get_user_model
@@ -165,11 +166,12 @@ class TourAdminSaveTests(TestCase):
 		'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 	})
 	def test_tour_and_checkpoint_save_when_image_storage_fails(self):
-		response = self.post_tour(
-			'admin-image-failure-tour',
-			cover_image_file=self.make_test_image('cover.png'),
-			checkpoint_image_file=self.make_test_image('checkpoint.png'),
-		)
+		with self.assertLogs('tours.admin', level='ERROR'):
+			response = self.post_tour(
+				'admin-image-failure-tour',
+				cover_image_file=self.make_test_image('cover.png'),
+				checkpoint_image_file=self.make_test_image('checkpoint.png'),
+			)
 
 		self.assertEqual(response.status_code, 200)
 		saved_tour = Tour.objects.get(slug='admin-image-failure-tour')
@@ -183,3 +185,47 @@ class TourAdminSaveTests(TestCase):
 			tour for tour in api_response.data if tour['slug'] == 'admin-image-failure-tour'
 		)
 		self.assertEqual(published_tour['cover_image'], 'https://example.com/tour-cover.jpg')
+
+	@patch.dict('os.environ', {
+		'CLOUDINARY_CLOUD_NAME': 'test-cloud',
+		'CLOUDINARY_API_KEY': 'test-key',
+		'CLOUDINARY_API_SECRET': 'test-secret',
+	})
+	@override_settings(
+		STORAGES={
+			'default': {'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'},
+			'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+		},
+		CLOUDINARY_STORAGE={
+			'CLOUD_NAME': 'test-cloud',
+			'API_KEY': 'test-key',
+			'API_SECRET': 'test-secret',
+		},
+	)
+	@patch('cloudinary.uploader.upload')
+	def test_cloudinary_uploads_admin_tour_images_and_exposes_them_in_api(self, upload):
+		upload.side_effect = [
+			{'public_id': 'media/tours/cover'},
+			{'public_id': 'media/checkpoints/arrival'},
+		]
+
+		response = self.post_tour(
+			'admin-cloudinary-tour',
+			cover_image_file=self.make_test_image('cover.png'),
+			checkpoint_image_file=self.make_test_image('arrival.png'),
+		)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(upload.call_count, 2)
+		saved_tour = Tour.objects.get(slug='admin-cloudinary-tour')
+		checkpoint = saved_tour.checkpoints.get()
+		self.assertIn('res.cloudinary.com/test-cloud/image/upload/', saved_tour.cover_image)
+		self.assertIn('media/tours/cover', saved_tour.cover_image)
+		self.assertIn('res.cloudinary.com/test-cloud/image/upload/', checkpoint.display_image_url)
+
+		api_response = self.client.get(reverse('tour-list'))
+		published_tour = next(
+			tour for tour in api_response.data if tour['slug'] == 'admin-cloudinary-tour'
+		)
+		self.assertEqual(published_tour['cover_image'], saved_tour.cover_image)
+		self.assertEqual(published_tour['checkpoints'][0]['image_url'], checkpoint.display_image_url)
