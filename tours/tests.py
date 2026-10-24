@@ -6,9 +6,14 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.files.storage import FileSystemStorage
 from django.urls import reverse
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
+
+from flavour_backend.cloudinary_utils import (
+	resolve_cloudinary_credentials,
+	sanitize_cloudinary_error,
+)
 from .models import BlogPost, BookingSearch, Destination, Tour
 
 
@@ -166,7 +171,7 @@ class TourAdminSaveTests(TestCase):
 		'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 	})
 	def test_tour_and_checkpoint_save_when_image_storage_fails(self):
-		with self.assertLogs('tours.admin', level='ERROR'):
+		with self.assertLogs('flavour_backend.cloudinary_utils', level='ERROR'):
 			response = self.post_tour(
 				'admin-image-failure-tour',
 				cover_image_file=self.make_test_image('cover.png'),
@@ -180,6 +185,7 @@ class TourAdminSaveTests(TestCase):
 		self.assertFalse(checkpoint.image_file)
 		self.assertEqual(saved_tour.cover_image, 'https://example.com/tour-cover.jpg')
 		self.assertContains(response, 'could not be uploaded')
+		self.assertContains(response, 'Test upload failure')
 		api_response = self.client.get(reverse('tour-list'))
 		published_tour = next(
 			tour for tour in api_response.data if tour['slug'] == 'admin-image-failure-tour'
@@ -200,6 +206,8 @@ class TourAdminSaveTests(TestCase):
 			'CLOUD_NAME': 'test-cloud',
 			'API_KEY': 'test-key',
 			'API_SECRET': 'test-secret',
+			'SECURE': True,
+			'PREFIX': 'media/',
 		},
 	)
 	@patch('cloudinary.uploader.upload')
@@ -229,3 +237,76 @@ class TourAdminSaveTests(TestCase):
 		)
 		self.assertEqual(published_tour['cover_image'], saved_tour.cover_image)
 		self.assertEqual(published_tour['checkpoints'][0]['image_url'], checkpoint.display_image_url)
+
+	@patch.dict('os.environ', {
+		'CLOUDINARY_CLOUD_NAME': 'test-cloud',
+		'CLOUDINARY_API_KEY': 'test-key',
+		'CLOUDINARY_API_SECRET': 'test-secret',
+	})
+	@override_settings(
+		STORAGES={
+			'default': {'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'},
+			'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+		},
+		CLOUDINARY_STORAGE={
+			'CLOUD_NAME': 'test-cloud',
+			'API_KEY': 'test-key',
+			'API_SECRET': 'test-secret',
+			'SECURE': True,
+			'PREFIX': 'media/',
+		},
+	)
+	@patch('cloudinary.uploader.upload', side_effect=cloudinary.exceptions.Error('Invalid Signature'))
+	def test_cloudinary_network_failure_keeps_previous_urls(self, _upload):
+		with self.assertLogs('flavour_backend.cloudinary_utils', level='ERROR'):
+			response = self.post_tour(
+				'admin-cloudinary-failure-tour',
+				cover_image_file=self.make_test_image('cover.png'),
+				checkpoint_image_file=self.make_test_image('arrival.png'),
+			)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Invalid Signature')
+		saved_tour = Tour.objects.get(slug='admin-cloudinary-failure-tour')
+		self.assertFalse(saved_tour.cover_image_file)
+		self.assertEqual(saved_tour.cover_image, 'https://example.com/tour-cover.jpg')
+
+
+class CloudinaryCredentialTests(SimpleTestCase):
+	def test_resolve_explicit_env_credentials(self):
+		credentials, source = resolve_cloudinary_credentials(
+			cloud_name='demo-cloud',
+			api_key='123456789012345',
+			api_secret='abcdefghijklmnopqrstuvwxyz12',
+		)
+		self.assertEqual(source, 'explicit_env')
+		self.assertEqual(credentials['CLOUD_NAME'], 'demo-cloud')
+
+	def test_resolve_cloudinary_url_credentials(self):
+		credentials, source = resolve_cloudinary_credentials(
+			cloudinary_url='cloudinary://123456789012345:abcdefghijklmnopqrstuvwxyz12@demo-cloud',
+		)
+		self.assertEqual(source, 'cloudinary_url')
+		self.assertEqual(credentials['CLOUD_NAME'], 'demo-cloud')
+		self.assertEqual(credentials['API_KEY'], '123456789012345')
+
+	def test_explicit_env_wins_over_url(self):
+		credentials, source = resolve_cloudinary_credentials(
+			cloud_name='explicit-cloud',
+			api_key='111',
+			api_secret='secretsecretsecret12',
+			cloudinary_url='cloudinary://999:othersecretothersecret@url-cloud',
+		)
+		self.assertEqual(source, 'explicit_env')
+		self.assertEqual(credentials['CLOUD_NAME'], 'explicit-cloud')
+
+	def test_incomplete_credentials_raise(self):
+		with self.assertRaises(ValueError):
+			resolve_cloudinary_credentials(cloud_name='only-name')
+
+	def test_sanitize_redacts_long_tokens(self):
+		exc = cloudinary.exceptions.Error('Invalid api_key abcdefghijklmnopqrstuvwxyz012345')
+		safe = sanitize_cloudinary_error(exc)
+		self.assertIn('Error', safe)
+		self.assertNotIn('abcdefghijklmnopqrstuvwxyz012345', safe)
+		self.assertIn('[redacted]', safe)

@@ -1,9 +1,20 @@
+import logging
 import os
 from pathlib import Path
+
+import cloudinary
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
+
+from flavour_backend.cloudinary_utils import resolve_cloudinary_credentials
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Local development: load backend/.env when present. Render injects env vars directly.
+load_dotenv(BASE_DIR / '.env')
+
+logger = logging.getLogger(__name__)
 
 # =========================================================
 # SECURITY
@@ -189,38 +200,31 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # =========================================================
 # CLOUDINARY
 # =========================================================
+# Production media MUST use Cloudinary. Render's local disk is ephemeral,
+# so FileSystemStorage uploads disappear after redeploys.
+#
+# Configure ONE of:
+#   A) CLOUDINARY_URL=cloudinary://API_KEY:API_SECRET@CLOUD_NAME
+#   B) CLOUDINARY_CLOUD_NAME + CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET
+#
+# If both are set, the three explicit variables win. Keep them in sync.
 
-CLOUDINARY_CLOUD_NAME = os.environ.get(
-    'CLOUDINARY_CLOUD_NAME',
-    ''
-).strip()
-
-CLOUDINARY_API_KEY = os.environ.get(
-    'CLOUDINARY_API_KEY',
-    ''
-).strip()
-
-CLOUDINARY_API_SECRET = os.environ.get(
-    'CLOUDINARY_API_SECRET',
-    ''
-).strip()
-
+CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME', '').strip()
+CLOUDINARY_API_KEY = os.environ.get('CLOUDINARY_API_KEY', '').strip()
+CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET', '').strip()
 CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL', '').strip()
-cloudinary_is_configured = bool(CLOUDINARY_URL) or all((
-    CLOUDINARY_CLOUD_NAME,
-    CLOUDINARY_API_KEY,
-    CLOUDINARY_API_SECRET,
-))
 
-if not CLOUDINARY_URL and any((
-    CLOUDINARY_CLOUD_NAME,
-    CLOUDINARY_API_KEY,
-    CLOUDINARY_API_SECRET,
-)) and not cloudinary_is_configured:
-    raise ImproperlyConfigured(
-        'Set CLOUDINARY_URL or all of CLOUDINARY_CLOUD_NAME, '
-        'CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.'
+try:
+    _cloudinary_credentials, CLOUDINARY_CONFIG_SOURCE = resolve_cloudinary_credentials(
+        cloud_name=CLOUDINARY_CLOUD_NAME,
+        api_key=CLOUDINARY_API_KEY,
+        api_secret=CLOUDINARY_API_SECRET,
+        cloudinary_url=CLOUDINARY_URL,
     )
+except ValueError as exc:
+    raise ImproperlyConfigured(str(exc)) from exc
+
+cloudinary_is_configured = bool(_cloudinary_credentials)
 
 if not DEBUG and not cloudinary_is_configured:
     raise ImproperlyConfigured(
@@ -230,17 +234,42 @@ if not DEBUG and not cloudinary_is_configured:
     )
 
 if cloudinary_is_configured:
+    CLOUDINARY_CLOUD_NAME = _cloudinary_credentials['CLOUD_NAME']
+    CLOUDINARY_API_KEY = _cloudinary_credentials['API_KEY']
+    CLOUDINARY_API_SECRET = _cloudinary_credentials['API_SECRET']
 
-    if all((CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET)):
-        CLOUDINARY_STORAGE = {
-            'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
-            'API_KEY': CLOUDINARY_API_KEY,
-            'API_SECRET': CLOUDINARY_API_SECRET,
-        }
+    # Always populate CLOUDINARY_STORAGE so django-cloudinary-storage configures
+    # the SDK from settings (not only from env import order / CLOUDINARY_URL).
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
+        'API_KEY': CLOUDINARY_API_KEY,
+        'API_SECRET': CLOUDINARY_API_SECRET,
+        'SECURE': True,
+        'PREFIX': 'media/',
+    }
+
+    cloudinary.config(
+        cloud_name=CLOUDINARY_CLOUD_NAME,
+        api_key=CLOUDINARY_API_KEY,
+        api_secret=CLOUDINARY_API_SECRET,
+        secure=True,
+    )
 
     STORAGES['default'] = {
         'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',
     }
+
+    logger.info(
+        'Cloudinary media storage enabled (source=%s, cloud_name=%s).',
+        CLOUDINARY_CONFIG_SOURCE,
+        CLOUDINARY_CLOUD_NAME,
+    )
+else:
+    CLOUDINARY_CONFIG_SOURCE = 'none'
+    logger.info(
+        'Cloudinary is not configured; media uploads use local FileSystemStorage '
+        '(acceptable only while DEBUG=True).'
+    )
 
 
 # =========================================================
