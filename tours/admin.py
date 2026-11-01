@@ -174,13 +174,113 @@ class TourCheckpointAdmin(admin.ModelAdmin):
     search_fields = ('title', 'location_name', 'description')
     fields = ('tour', 'day_number', 'title', 'location_name', 'altitude', 'description', 'insta_spot', 'vibe_highlight', 'image_file', 'image_url', 'activities')
 
+from django.utils.html import format_html
+
+class BlogPostAdminForm(forms.ModelForm):
+    seo_title = forms.CharField(
+        widget=forms.TextInput(attrs={'placeholder': 'e.g. Kashmir in Winter 2026–27: Travel Guide | Flavour Holidays', 'style': 'width: 100%; max-width: 680px;'}),
+        required=False,
+        help_text="Recommended: 50–60 characters"
+    )
+    meta_description = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'Plan your Kashmir winter trip with our complete guide to weather, snowfall...', 'style': 'width: 100%; max-width: 680px;'}),
+        required=False,
+        help_text="Recommended: 150–160 characters"
+    )
+    meta_keywords = forms.CharField(
+        widget=forms.TextInput(attrs={'placeholder': 'kashmir in winter, kashmir snowfall guide, gulmarg snow tour', 'style': 'width: 100%; max-width: 680px;'}),
+        required=False,
+        help_text="Comma-separated keywords for local search & topics (e.g. Kashmir winter tour, Gulmarg snowfall travel guide)"
+    )
+    canonical_url = forms.URLField(
+        widget=forms.URLInput(attrs={'placeholder': 'https://www.flavourholidays.com/blog/kashmir-in-winter-2026/', 'style': 'width: 100%; max-width: 680px;'}),
+        required=False,
+        help_text="Optional custom canonical URL. Defaults to https://www.flavourholidays.com/blog/<slug>/"
+    )
+
+    class Meta:
+        model = BlogPost
+        fields = '__all__'
+
+
 @admin.register(BlogPost)
 class BlogPostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'category', 'author', 'read_time', 'created_at')
-    list_filter = ('category', 'author')
-    search_fields = ('title', 'excerpt', 'content')
+    form = BlogPostAdminForm
+    list_display = ('title', 'category', 'author', 'read_time', 'allow_indexing', 'created_at')
+    list_filter = ('category', 'author', 'allow_indexing')
+    search_fields = ('title', 'seo_title', 'meta_description', 'meta_keywords', 'excerpt', 'content')
     prepopulated_fields = {'slug': ('title',)}
-    fields = ('title', 'slug', 'category', 'read_time', 'author', 'vibe_tag', 'related_tour', 'cover_image_file', 'cover_image_url', 'excerpt', 'content')
+    readonly_fields = ('cover_image_preview',)
+
+    fieldsets = (
+        (None, {
+            'fields': (
+                'title',
+                'slug',
+                'category',
+                'read_time',
+                'author',
+                'vibe_tag',
+                'related_tour',
+            )
+        }),
+        ('SEO Settings', {
+            'fields': (
+                'seo_title',
+                'meta_description',
+                'meta_keywords',
+                'canonical_url',
+                'cover_image_file',
+                'cover_image_url',
+                'cover_image_preview',
+                'image_alt',
+                'allow_indexing',
+            )
+        }),
+        ('Blog Content', {
+            'fields': (
+                'excerpt',
+                'content',
+            )
+        }),
+    )
+
+    def cover_image_preview(self, obj):
+        image_url = obj.cover_image if obj else None
+        if image_url:
+            return format_html(
+                '<img src="{}" alt="{}" style="max-height: 80px; max-width: 160px; border-radius: 6px; object-fit: cover; box-shadow: 0 1px 3px rgba(0,0,0,0.2);" />',
+                image_url,
+                obj.effective_image_alt or obj.title
+            )
+        return "No image uploaded yet"
+    cover_image_preview.short_description = "Cover Preview"
+
+    def save_model(self, request, obj, form, change):
+        previous_image = form.initial.get('cover_image_file')
+        previous_image_name = getattr(previous_image, 'name', previous_image) or ''
+        try:
+            with transaction.atomic():
+                super().save_model(request, obj, form, change)
+        except IMAGE_STORAGE_ERRORS as exc:
+            if not form.files.get(form.add_prefix('cover_image_file')):
+                raise
+
+            safe_error = log_upload_failure(
+                'blog post cover',
+                exc,
+                tour_slug=getattr(obj, 'slug', None),
+            )
+            obj.cover_image_file = previous_image_name or None
+            form.cleaned_data['cover_image_file'] = previous_image_name or None
+            messages.warning(
+                request,
+                "The blog post was saved, but its new cover image could not be uploaded. "
+                "The previous image or the cover image URL will be used instead. "
+                f"Details: {safe_error}"
+            )
+            super().save_model(request, obj, form, change)
+
 
 @admin.register(Vehicle)
 class VehicleAdmin(admin.ModelAdmin):

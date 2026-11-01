@@ -67,6 +67,10 @@ class BlogPostSerializer(serializers.ModelSerializer):
     related_tour_title = serializers.CharField(source='related_tour.title', read_only=True, allow_null=True)
     related_tour_slug = serializers.CharField(source='related_tour.slug', read_only=True, allow_null=True)
     cover_image = serializers.SerializerMethodField()
+    canonical_url = serializers.SerializerMethodField()
+    seo_title = serializers.SerializerMethodField()
+    meta_description = serializers.SerializerMethodField()
+    image_alt = serializers.SerializerMethodField()
 
     class Meta:
         model = BlogPost
@@ -75,6 +79,19 @@ class BlogPostSerializer(serializers.ModelSerializer):
     def get_cover_image(self, obj):
         request = self.context.get('request')
         return resolve_image_url(request, obj.cover_image)
+
+    def get_canonical_url(self, obj):
+        return obj.effective_canonical_url
+
+    def get_seo_title(self, obj):
+        return obj.effective_seo_title
+
+    def get_meta_description(self, obj):
+        return obj.effective_meta_description
+
+    def get_image_alt(self, obj):
+        return obj.effective_image_alt
+
 
 class VehicleSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()

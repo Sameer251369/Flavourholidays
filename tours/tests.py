@@ -310,3 +310,94 @@ class CloudinaryCredentialTests(SimpleTestCase):
 		self.assertIn('Error', safe)
 		self.assertNotIn('abcdefghijklmnopqrstuvwxyz012345', safe)
 		self.assertIn('[redacted]', safe)
+
+
+@override_settings(STORAGES={
+	'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+	'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+})
+class BlogPostSEOTests(TestCase):
+	def setUp(self):
+		self.destination = Destination.objects.create(
+			name='Kashmir Valley', slug='seo-kashmir', description='Kashmir'
+		)
+		self.tour = Tour.objects.create(
+			title='Kashmir Winter Tour', slug='kashmir-winter-tour', destination=self.destination,
+			overview='Winter tour package'
+		)
+
+	def test_blog_post_seo_fallbacks(self):
+		blog = BlogPost.objects.create(
+			title='Kashmir Snow Guide',
+			slug='kashmir-snow-guide',
+			excerpt='A brief excerpt about Kashmir snow.',
+			content='Full guide content here.',
+			related_tour=self.tour
+		)
+		self.assertEqual(blog.effective_seo_title, 'Kashmir Snow Guide | Flavour Holidays')
+		self.assertEqual(blog.effective_meta_description, 'A brief excerpt about Kashmir snow.')
+		self.assertEqual(blog.effective_canonical_url, 'https://www.flavourholidays.com/blog/kashmir-snow-guide/')
+		self.assertEqual(blog.effective_image_alt, 'Kashmir Snow Guide')
+		self.assertTrue(blog.allow_indexing)
+
+	def test_blog_post_explicit_seo_fields(self):
+		blog = BlogPost.objects.create(
+			title='Kashmir in Winter 2026–27: Weather, Snowfall & Travel Guide',
+			slug='kashmir-in-winter-2026',
+			seo_title='Kashmir in Winter 2026–27: Travel Guide | Flavour Holidays',
+			meta_description='Plan your Kashmir winter trip with our complete guide.',
+			meta_keywords='kashmir in winter, kashmir snowfall guide',
+			canonical_url='https://www.flavourholidays.com/blog/kashmir-in-winter-2026/',
+			image_alt='Snow-covered mountains in Gulmarg, Kashmir',
+			allow_indexing=True,
+			related_tour=self.tour
+		)
+		self.assertEqual(blog.effective_seo_title, 'Kashmir in Winter 2026–27: Travel Guide | Flavour Holidays')
+		self.assertEqual(blog.effective_meta_description, 'Plan your Kashmir winter trip with our complete guide.')
+		self.assertEqual(blog.effective_canonical_url, 'https://www.flavourholidays.com/blog/kashmir-in-winter-2026/')
+		self.assertEqual(blog.effective_image_alt, 'Snow-covered mountains in Gulmarg, Kashmir')
+
+	def test_blog_post_api_serializer(self):
+		from tours.serializers import BlogPostSerializer
+		blog = BlogPost.objects.create(
+			title='API Test Blog',
+			slug='api-test-blog',
+			meta_keywords='test, api',
+			related_tour=self.tour
+		)
+		serializer = BlogPostSerializer(blog)
+		data = serializer.data
+		self.assertEqual(data['seo_title'], 'API Test Blog | Flavour Holidays')
+		self.assertEqual(data['canonical_url'], 'https://www.flavourholidays.com/blog/api-test-blog/')
+		self.assertEqual(data['meta_keywords'], 'test, api')
+		self.assertTrue(data['allow_indexing'])
+
+	def test_blog_post_admin_save(self):
+		admin_user = get_user_model().objects.create_superuser(
+			username='blog_admin', email='blog_admin@example.com', password='password123'
+		)
+		self.client.force_login(admin_user)
+		response = self.client.post(reverse('admin:tours_blogpost_add'), {
+			'title': 'Admin Added Blog',
+			'slug': 'admin-added-blog',
+			'category': 'Guide',
+			'read_time': '5 min read',
+			'author': 'Flavour Squad',
+			'vibe_tag': '#Winter',
+			'related_tour': self.tour.pk,
+			'seo_title': 'Admin Added Blog | Flavour Holidays',
+			'meta_description': 'A meta description for SEO testing.',
+			'meta_keywords': 'kashmir, winter',
+			'canonical_url': 'https://www.flavourholidays.com/blog/admin-added-blog/',
+			'image_alt': 'Admin blog alt text',
+			'allow_indexing': 'on',
+			'excerpt': 'Admin excerpt',
+			'content': 'Admin full content',
+			'_save': 'Save'
+		}, follow=True)
+		self.assertEqual(response.status_code, 200)
+		saved = BlogPost.objects.get(slug='admin-added-blog')
+		self.assertEqual(saved.seo_title, 'Admin Added Blog | Flavour Holidays')
+		self.assertEqual(saved.image_alt, 'Admin blog alt text')
+		self.assertTrue(saved.allow_indexing)
+

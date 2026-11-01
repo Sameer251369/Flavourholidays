@@ -125,7 +125,7 @@ class TourCheckpoint(models.Model):
 
 
 class BlogPost(models.Model):
-    title = models.CharField(max_length=250)
+    title = models.CharField(max_length=250, verbose_name="Title (H1)")
     slug = models.SlugField(unique=True)
 
     category = models.CharField(
@@ -166,6 +166,42 @@ class BlogPost(models.Model):
         related_name="blogs"
     )
 
+    # SEO Settings
+    seo_title = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name="SEO title",
+        help_text="Recommended: 50–60 characters"
+    )
+    meta_description = models.TextField(
+        blank=True,
+        verbose_name="Meta description",
+        help_text="Recommended: 150–160 characters"
+    )
+    meta_keywords = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Meta keywords",
+        help_text="Comma-separated keywords for local search & topics (e.g. Kashmir winter tour, Gulmarg snowfall travel guide)"
+    )
+    canonical_url = models.URLField(
+        max_length=300,
+        blank=True,
+        verbose_name="Canonical URL",
+        help_text="Optional custom canonical URL. Defaults to https://www.flavourholidays.com/blog/<slug>/"
+    )
+    image_alt = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Image alt text",
+        help_text="Snow-covered mountains in Gulmarg, Kashmir"
+    )
+    allow_indexing = models.BooleanField(
+        default=True,
+        verbose_name="Allow search engines to index this page",
+        help_text="Allow search engines to index this page"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
@@ -174,8 +210,37 @@ class BlogPost(models.Model):
             return self.cover_image_file.url
         return self.cover_image_url
 
+    @property
+    def effective_seo_title(self):
+        if self.seo_title and self.seo_title.strip():
+            return self.seo_title.strip()
+        return f"{self.title} | Flavour Holidays"
+
+    @property
+    def effective_meta_description(self):
+        if self.meta_description and self.meta_description.strip():
+            return self.meta_description.strip()
+        if self.excerpt and self.excerpt.strip():
+            return self.excerpt.strip()
+        if self.content:
+            return self.content.strip()[:160]
+        return ""
+
+    @property
+    def effective_canonical_url(self):
+        if self.canonical_url and self.canonical_url.strip():
+            return self.canonical_url.strip()
+        return f"https://www.flavourholidays.com/blog/{self.slug}/"
+
+    @property
+    def effective_image_alt(self):
+        if self.image_alt and self.image_alt.strip():
+            return self.image_alt.strip()
+        return self.title
+
     def __str__(self):
         return self.title
+
 
 
 class Vehicle(models.Model):
