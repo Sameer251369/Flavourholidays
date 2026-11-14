@@ -284,9 +284,9 @@ class BlogPostAdmin(admin.ModelAdmin):
 
 @admin.register(Vehicle)
 class VehicleAdmin(admin.ModelAdmin):
-    list_display = ('name', 'model_name', 'capacity_passengers', 'badge')
+    list_display = ('name', 'model_name', 'rent_per_day', 'capacity_passengers', 'badge')
     search_fields = ('name', 'model_name', 'description')
-    fields = ('name', 'model_name', 'capacity_passengers', 'terrain_type', 'badge', 'description', 'image_file', 'image_url')
+    fields = ('name', 'model_name', 'rent_per_day', 'capacity_passengers', 'terrain_type', 'badge', 'description', 'image_file', 'image_url')
 
 @admin.register(Inquiry)
 class InquiryAdmin(admin.ModelAdmin):

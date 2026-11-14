@@ -246,6 +246,12 @@ class BlogPost(models.Model):
 class Vehicle(models.Model):
     name = models.CharField(max_length=150)
     model_name = models.CharField(max_length=150)
+    rent_per_day = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Daily rental rate in Indian rupees.",
+        verbose_name="Rent per day (₹)",
+    )
 
     capacity_passengers = models.CharField(
         max_length=100
