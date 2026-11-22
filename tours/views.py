@@ -14,7 +14,7 @@ class DestinationViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'slug'
 
 class TourViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Tour.objects.all().select_related('destination').prefetch_related('checkpoints')
+    queryset = Tour.objects.all().select_related('destination').prefetch_related('checkpoints', 'pricing_options')
     filter_backends = [filters.SearchFilter]
     search_fields = ['title', 'vibe_tag', 'destination__name', 'overview']
     lookup_field = 'slug'

@@ -74,6 +74,29 @@ class Tour(models.Model):
         return f"{self.title} ({self.destination.name})"
 
 
+class TourPricing(models.Model):
+    class Audience(models.TextChoices):
+        GROUP = "group", "Group"
+        FAMILY = "family", "Family"
+        COUPLE = "couple", "Couple"
+        FRIENDS = "friends", "Friends"
+        PER_PERSON = "per_person", "Per person"
+
+    tour = models.ForeignKey(Tour, on_delete=models.CASCADE, related_name="pricing_options")
+    audience = models.CharField(max_length=20, choices=Audience.choices)
+    price = models.PositiveIntegerField(help_text="Price in Indian rupees (₹).")
+    note = models.CharField(max_length=160, blank=True, help_text="Optional note shown with this price.")
+
+    class Meta:
+        ordering = ["id"]
+        constraints = [
+            models.UniqueConstraint(fields=["tour", "audience"], name="unique_tour_audience_price")
+        ]
+
+    def __str__(self):
+        return f"{self.tour.title} — {self.get_audience_display()}: ₹{self.price}"
+
+
 class TourCheckpoint(models.Model):
     tour = models.ForeignKey(
         Tour,

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Destination, Tour, TourCheckpoint, BlogPost, Vehicle, Inquiry, BookingSearch, Testimonial, FAQ
+from .models import Destination, Tour, TourPricing, TourCheckpoint, BlogPost, Vehicle, Inquiry, BookingSearch, Testimonial, FAQ
 
 def resolve_image_url(request, path_or_url):
     if not path_or_url:
@@ -32,10 +32,19 @@ class TourCheckpointSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         return resolve_image_url(request, obj.display_image_url)
 
+
+class TourPricingSerializer(serializers.ModelSerializer):
+    audience_label = serializers.CharField(source="get_audience_display", read_only=True)
+
+    class Meta:
+        model = TourPricing
+        fields = ["id", "audience", "audience_label", "price", "note"]
+
 class TourListSerializer(serializers.ModelSerializer):
     destination_name = serializers.CharField(source='destination.name', read_only=True)
     checkpoints = TourCheckpointSerializer(many=True, read_only=True)
     cover_image = serializers.SerializerMethodField()
+    pricing_options = TourPricingSerializer(many=True, read_only=True)
 
     class Meta:
         model = Tour
@@ -43,7 +52,7 @@ class TourListSerializer(serializers.ModelSerializer):
             'id', 'title', 'slug', 'destination', 'destination_name',
             'tagline', 'vibe_tag', 'duration_days', 'duration_nights',
             'starting_price', 'difficulty', 'cover_image', 'gallery_urls',
-            'overview', 'inclusions', 'exclusions', 'is_featured', 'checkpoints'
+            'overview', 'inclusions', 'exclusions', 'is_featured', 'checkpoints', 'pricing_options'
         ]
 
     def get_cover_image(self, obj):
@@ -54,10 +63,12 @@ class TourDetailSerializer(serializers.ModelSerializer):
     destination_name = serializers.CharField(source='destination.name', read_only=True)
     checkpoints = TourCheckpointSerializer(many=True, read_only=True)
     cover_image = serializers.SerializerMethodField()
+    pricing_options = TourPricingSerializer(many=True, read_only=True)
 
     class Meta:
         model = Tour
         fields = '__all__'
+        read_only_fields = ("pricing_options",)
 
     def get_cover_image(self, obj):
         request = self.context.get('request')

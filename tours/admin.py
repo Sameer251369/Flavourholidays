@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.db import transaction
 
 from flavour_backend.cloudinary_utils import log_upload_failure
-from .models import Destination, Tour, TourCheckpoint, BlogPost, Vehicle, Inquiry, Testimonial, FAQ
+from .models import Destination, Tour, TourPricing, TourCheckpoint, BlogPost, Vehicle, Inquiry, Testimonial, FAQ
 
 IMAGE_STORAGE_ERRORS = (cloudinary.exceptions.Error, requests.exceptions.RequestException)
 
@@ -77,6 +77,14 @@ class TourCheckpointInline(admin.StackedInline):
         }),
     )
 
+
+class TourPricingInline(admin.TabularInline):
+    model = TourPricing
+    extra = 0
+    fields = ("audience", "price", "note")
+    verbose_name = "Audience price"
+    verbose_name_plural = "Audience pricing (group, family, couple, friends, per person)"
+
 @admin.register(Destination)
 class DestinationAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'altitude_range', 'best_time')
@@ -91,7 +99,7 @@ class TourAdmin(admin.ModelAdmin):
     list_filter = ('destination', 'difficulty', 'is_featured')
     search_fields = ('title', 'overview', 'tagline', 'vibe_tag')
     prepopulated_fields = {'slug': ('title',)}
-    inlines = [TourCheckpointInline]
+    inlines = [TourCheckpointInline, TourPricingInline]
     fieldsets = (
         ('Basic Info', {
             'fields': ('title', 'slug', 'destination', 'tagline', 'vibe_tag', 'is_featured')
