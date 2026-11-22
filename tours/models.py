@@ -418,3 +418,333 @@ class FAQ(models.Model):
     def __str__(self):
         return self.question
 
+
+class PlannerPlace(models.Model):
+    class Region(models.TextChoices):
+        KASHMIR = "kashmir", "Kashmir"
+        LADAKH = "ladakh", "Ladakh"
+
+    slug = models.SlugField(unique=True)
+    name = models.CharField(max_length=120)
+    region = models.CharField(max_length=20, choices=Region.choices)
+    description = models.TextField(blank=True)
+    cover_image_file = models.ImageField(upload_to="planner/places/", blank=True, null=True)
+    cover_image_url = models.URLField(blank=True, default="")
+    highlight = models.CharField(max_length=180, blank=True)
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["region", "sort_order", "name"]
+
+    @property
+    def cover_image(self):
+        if self.cover_image_file:
+            return self.cover_image_file.url
+        return self.cover_image_url
+
+    def __str__(self):
+        return f"{self.name} ({self.get_region_display()})"
+
+
+class PlannerStayOption(models.Model):
+    slug = models.SlugField(unique=True)
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True)
+    estimate_per_night = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Optional per-night estimate in INR. Leave blank to require a personal quote.",
+    )
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        verbose_name = "Planner stay option"
+
+    def __str__(self):
+        return self.name
+
+
+class PlannerTransportOption(models.Model):
+    slug = models.SlugField(unique=True)
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True)
+    vehicle = models.ForeignKey(
+        Vehicle,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="planner_options",
+    )
+    estimate_per_day = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Optional per-day estimate in INR. Leave blank to require a personal quote.",
+    )
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        verbose_name = "Planner transport option"
+
+    def __str__(self):
+        return self.name
+
+
+class PlannerActivity(models.Model):
+    slug = models.SlugField(unique=True)
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True)
+    estimate_amount = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Optional per-person activity estimate in INR. Leave blank to require a personal quote.",
+    )
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        verbose_name = "Planner activity"
+
+    def __str__(self):
+        return self.name
+
+
+class PlannerAdditionalService(models.Model):
+    slug = models.SlugField(unique=True)
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True)
+    estimate_amount = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Optional flat estimate per trip in INR. Leave blank to require a personal quote.",
+    )
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        verbose_name = "Planner additional service"
+
+    def __str__(self):
+        return self.name
+
+
+class PlannerBudgetBand(models.Model):
+    slug = models.SlugField(unique=True)
+    label = models.CharField(max_length=80)
+    min_amount = models.PositiveIntegerField(blank=True, null=True)
+    max_amount = models.PositiveIntegerField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "id"]
+        verbose_name = "Planner budget band"
+
+    def __str__(self):
+        return self.label
+
+
+class PlannerTravelStyle(models.Model):
+    slug = models.SlugField(unique=True)
+    name = models.CharField(max_length=80)
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        verbose_name = "Planner travel style"
+
+    def __str__(self):
+        return self.name
+
+
+class PlannerSeasonRate(models.Model):
+    name = models.CharField(max_length=80)
+    start_month = models.PositiveSmallIntegerField()
+    start_day = models.PositiveSmallIntegerField(default=1)
+    end_month = models.PositiveSmallIntegerField()
+    end_day = models.PositiveSmallIntegerField(default=1)
+    multiplier = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        help_text="Applied to configured estimates when travel dates overlap this window.",
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Planner seasonal rate"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        from datetime import date
+
+        try:
+            date(2024, self.start_month, self.start_day)
+            date(2024 if (self.start_month, self.start_day) <= (self.end_month, self.end_day) else 2025, self.end_month, self.end_day)
+        except (TypeError, ValueError):
+            raise ValidationError("Enter valid start and end month/day values for the seasonal rate.")
+        if self.multiplier is not None and self.multiplier <= 0:
+            raise ValidationError({'multiplier': "The seasonal multiplier must be greater than zero."})
+
+    def __str__(self):
+        return f"{self.name} ×{self.multiplier}"
+
+
+class TripInquiry(models.Model):
+    class Status(models.TextChoices):
+        NEW = "new", "New"
+        CONTACTED = "contacted", "Contacted"
+        QUOTATION_PENDING = "quotation_pending", "Quotation Pending"
+        QUOTATION_SENT = "quotation_sent", "Quotation Sent"
+        CONFIRMED = "confirmed", "Confirmed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    class BudgetScope(models.TextChoices):
+        PER_PERSON = "per_person", "Per person"
+        TOTAL = "total", "Total trip"
+
+    reference_id = models.CharField(max_length=16, unique=True, db_index=True)
+    name = models.CharField(max_length=120)
+    email = models.EmailField()
+    phone_country_code = models.CharField(max_length=8, default="+91")
+    phone = models.CharField(max_length=30)
+    departure_date = models.DateField()
+    return_date = models.DateField()
+    adults = models.PositiveSmallIntegerField(default=1)
+    children = models.PositiveSmallIntegerField(default=0)
+    infants = models.PositiveSmallIntegerField(default=0)
+    stay_option = models.ForeignKey(
+        PlannerStayOption,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="inquiries",
+    )
+    transport_option = models.ForeignKey(
+        PlannerTransportOption,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="inquiries",
+    )
+    budget_band = models.ForeignKey(
+        PlannerBudgetBand,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="inquiries",
+    )
+    budget_scope = models.CharField(
+        max_length=20,
+        choices=BudgetScope.choices,
+        default=BudgetScope.PER_PERSON,
+    )
+    travel_style = models.ForeignKey(
+        PlannerTravelStyle,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="inquiries",
+    )
+    food_preferences = models.CharField(max_length=250, blank=True, default="")
+    special_requests = models.TextField(blank=True, default="")
+    accessibility_needs = models.TextField(blank=True, default="")
+    additional_information = models.TextField(blank=True, default="")
+    status = models.CharField(max_length=32, choices=Status.choices, default=Status.NEW, db_index=True)
+    admin_notes = models.TextField(blank=True, default="")
+    estimate_snapshot = models.JSONField(default=dict, blank=True)
+    submit_fingerprint = models.CharField(max_length=64, db_index=True, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    places = models.ManyToManyField(PlannerPlace, through="TripInquiryPlace", related_name="inquiries")
+    activities = models.ManyToManyField(PlannerActivity, through="TripInquiryActivity", related_name="inquiries")
+    additional_services = models.ManyToManyField(PlannerAdditionalService, through="TripInquiryAdditionalService", related_name="inquiries")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Trip customization enquiry"
+
+    @property
+    def travelers_total(self):
+        return self.adults + self.children + self.infants
+
+    @property
+    def nights(self):
+        if not self.departure_date or not self.return_date:
+            return 0
+        delta = (self.return_date - self.departure_date).days
+        return max(delta, 0)
+
+    def __str__(self):
+        return f"{self.reference_id} — {self.name}"
+
+
+class TripInquiryPlace(models.Model):
+    inquiry = models.ForeignKey(TripInquiry, on_delete=models.CASCADE, related_name="place_links")
+    place = models.ForeignKey(PlannerPlace, on_delete=models.CASCADE)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "id"]
+        unique_together = ("inquiry", "place")
+        verbose_name = "Selected destination"
+
+
+class TripInquiryActivity(models.Model):
+    inquiry = models.ForeignKey(TripInquiry, on_delete=models.CASCADE, related_name="activity_links")
+    activity = models.ForeignKey(PlannerActivity, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ("inquiry", "activity")
+        verbose_name = "Selected activity"
+
+
+class TripInquiryAdditionalService(models.Model):
+    inquiry = models.ForeignKey(TripInquiry, on_delete=models.CASCADE, related_name="additional_service_links")
+    service = models.ForeignKey(PlannerAdditionalService, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ("inquiry", "service")
+        verbose_name = "Selected additional service"
+
+
+class TripQuotation(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        SENT = "sent", "Sent"
+        ACCEPTED = "accepted", "Accepted"
+        DECLINED = "declined", "Declined"
+
+    inquiry = models.OneToOneField(TripInquiry, on_delete=models.CASCADE, related_name="quotation")
+    accommodation_cost = models.PositiveIntegerField(default=0)
+    transportation_cost = models.PositiveIntegerField(default=0)
+    activities_cost = models.PositiveIntegerField(default=0)
+    additional_charges = models.PositiveIntegerField(default=0)
+    total_quotation = models.PositiveIntegerField(default=0)
+    admin_notes = models.TextField(blank=True, default="")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Trip quotation"
+
+    def save(self, *args, **kwargs):
+        self.total_quotation = (
+            self.accommodation_cost
+            + self.transportation_cost
+            + self.activities_cost
+            + self.additional_charges
+        )
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Quote {self.inquiry.reference_id}: ₹{self.total_quotation}"
+

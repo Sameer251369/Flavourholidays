@@ -15,6 +15,11 @@ from flavour_backend.cloudinary_utils import (
 	sanitize_cloudinary_error,
 )
 from .models import BlogPost, BookingSearch, Destination, Tour
+from .models import (
+	PlannerPlace, PlannerStayOption, PlannerTransportOption, PlannerActivity, PlannerAdditionalService,
+	PlannerBudgetBand, PlannerTravelStyle, TripInquiry, TripQuotation,
+	PlannerSeasonRate,
+)
 
 
 class FailingUploadStorage(FileSystemStorage):
@@ -90,6 +95,115 @@ class BookingSearchTests(APITestCase):
 
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 		self.assertEqual(BookingSearch.objects.count(), 0)
+
+
+class TripPlannerAPITests(APITestCase):
+	def setUp(self):
+		from django.core.cache import cache
+		cache.clear()
+		self.place, _ = PlannerPlace.objects.get_or_create(
+			slug='test-srinagar', defaults={'name': 'Srinagar', 'region': 'kashmir', 'is_active': True}
+		)
+		self.stay, _ = PlannerStayOption.objects.get_or_create(
+			slug='test-houseboat', defaults={'name': 'Houseboat', 'estimate_per_night': None}
+		)
+		self.transport, _ = PlannerTransportOption.objects.get_or_create(
+			slug='test-suv', defaults={'name': 'SUV', 'estimate_per_day': None}
+		)
+		self.activity, _ = PlannerActivity.objects.get_or_create(
+			slug='test-shikara', defaults={'name': 'Shikara rides', 'estimate_amount': None}
+		)
+		self.service, _ = PlannerAdditionalService.objects.get_or_create(
+			slug='test-airport-transfer', defaults={'name': 'Airport transfer', 'estimate_amount': None}
+		)
+		self.budget, _ = PlannerBudgetBand.objects.get_or_create(
+			slug='test-budget', defaults={'label': '₹10,000–₹20,000'}
+		)
+		self.style, _ = PlannerTravelStyle.objects.get_or_create(
+			slug='test-family', defaults={'name': 'Family vacation'}
+		)
+		self.payload = {
+			'name': 'Test Traveller', 'email': 'traveller@example.com',
+			'phone_country_code': '+91', 'phone': '9876543210',
+			'departure_date': '2027-06-10', 'return_date': '2027-06-14',
+			'adults': 2, 'children': 1, 'infants': 0,
+			'destination_slugs': [self.place.slug], 'activity_slugs': [self.activity.slug],
+			'additional_service_slugs': [self.service.slug],
+			'stay_slug': self.stay.slug, 'transport_slug': self.transport.slug,
+			'budget_slug': self.budget.slug, 'budget_scope': 'per_person',
+			'travel_style_slug': self.style.slug,
+			'food_preferences': '', 'special_requests': '',
+			'accessibility_needs': '', 'additional_information': '',
+		}
+
+	def test_options_are_public_and_use_backend_catalog(self):
+		response = self.client.get(reverse('trip-planner-options'))
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		self.assertTrue(any(item['slug'] == self.place.slug for item in response.data['destinations']))
+		self.assertTrue(any(item['slug'] == self.activity.slug for item in response.data['activities']))
+
+	def test_enquiry_saves_preferences_and_returns_reference(self):
+		response = self.client.post(reverse('trip-planner-create'), self.payload, format='json')
+		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+		inquiry = TripInquiry.objects.get(reference_id=response.data['reference_id'])
+		self.assertEqual(inquiry.travelers_total, 3)
+		self.assertEqual(inquiry.nights, 4)
+		self.assertEqual(list(inquiry.places.all()), [self.place])
+		self.assertEqual(list(inquiry.activities.all()), [self.activity])
+		self.assertIn('Request a Personalized Quote', response.data['estimate']['message'])
+
+	def test_invalid_dates_are_rejected(self):
+		payload = {**self.payload, 'return_date': self.payload['departure_date']}
+		response = self.client.post(reverse('trip-planner-create'), payload, format='json')
+		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+		self.assertIn('return_date', response.data)
+
+	def test_repeat_submit_returns_existing_reference(self):
+		first = self.client.post(reverse('trip-planner-create'), self.payload, format='json')
+		second = self.client.post(reverse('trip-planner-create'), self.payload, format='json')
+		self.assertEqual(first.data['reference_id'], second.data['reference_id'])
+		self.assertEqual(TripInquiry.objects.count(), 1)
+
+	def test_configured_prices_include_travellers_trip_days_and_season(self):
+		self.stay.estimate_per_night = 4000
+		self.stay.save()
+		self.transport.estimate_per_day = 2000
+		self.transport.save()
+		self.activity.estimate_amount = 500
+		self.activity.save()
+		self.service.estimate_amount = 1200
+		self.service.save()
+		PlannerSeasonRate.objects.create(
+			name='Summer test season', start_month=6, start_day=12,
+			end_month=6, end_day=20, multiplier='1.20',
+		)
+		response = self.client.post(reverse('trip-planner-create'), self.payload, format='json')
+		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+		self.assertEqual(response.data['estimate']['total'], 34440)
+		self.assertEqual(response.data['estimate']['season'], 'Summer test season')
+		self.assertIn('wa.me/', response.data['whatsapp_url'])
+
+	def test_enquiry_listing_and_retrieval_require_admin(self):
+		created = self.client.post(reverse('trip-planner-create'), self.payload, format='json')
+		self.assertEqual(self.client.get(reverse('trip-planner-create')).status_code, status.HTTP_403_FORBIDDEN)
+		self.assertEqual(self.client.get(f"/api/trip-planner/inquiries/{created.data['reference_id']}/").status_code, status.HTTP_403_FORBIDDEN)
+		admin_user = get_user_model().objects.create_superuser(username='planner_admin', email='planner@example.com', password='password123')
+		self.client.force_login(admin_user)
+		self.assertEqual(self.client.get(reverse('trip-planner-create')).status_code, status.HTTP_200_OK)
+		self.assertEqual(self.client.get(f"/api/trip-planner/inquiries/{created.data['reference_id']}/").status_code, status.HTTP_200_OK)
+
+	def test_admin_can_create_quotation(self):
+		created = self.client.post(reverse('trip-planner-create'), self.payload, format='json')
+		admin_user = get_user_model().objects.create_superuser(username='quote_admin', email='quote@example.com', password='password123')
+		self.client.force_login(admin_user)
+		response = self.client.post(
+			f"/api/trip-planner/inquiries/{created.data['reference_id']}/quotation/",
+			{'accommodation_cost': 12000, 'transportation_cost': 6000, 'activities_cost': 1500, 'additional_charges': 500},
+			format='json',
+		)
+		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+		self.assertEqual(response.data['total_quotation'], 20000)
+		self.assertTrue(TripQuotation.objects.filter(inquiry__reference_id=created.data['reference_id']).exists())
 
 
 @override_settings(STORAGES={

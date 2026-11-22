@@ -7,7 +7,12 @@ from django.contrib import messages
 from django.db import transaction
 
 from flavour_backend.cloudinary_utils import log_upload_failure
-from .models import Destination, Tour, TourPricing, TourCheckpoint, BlogPost, Vehicle, Inquiry, Testimonial, FAQ
+from .models import (
+    Destination, Tour, TourPricing, TourCheckpoint, BlogPost, Vehicle, Inquiry,
+    Testimonial, FAQ, PlannerPlace, PlannerStayOption, PlannerTransportOption,
+    PlannerActivity, PlannerAdditionalService, PlannerBudgetBand, PlannerTravelStyle, PlannerSeasonRate,
+    TripInquiry, TripInquiryPlace, TripInquiryActivity, TripInquiryAdditionalService, TripQuotation,
+)
 
 IMAGE_STORAGE_ERRORS = (cloudinary.exceptions.Error, requests.exceptions.RequestException)
 
@@ -315,3 +320,106 @@ class FAQAdmin(admin.ModelAdmin):
     list_display = ('question', 'category')
     list_filter = ('category',)
     search_fields = ('question', 'answer')
+
+
+class TripInquiryPlaceInline(admin.TabularInline):
+    model = TripInquiryPlace
+    extra = 0
+    autocomplete_fields = ('place',)
+
+
+class TripInquiryActivityInline(admin.TabularInline):
+    model = TripInquiryActivity
+    extra = 0
+    autocomplete_fields = ('activity',)
+
+
+class TripInquiryAdditionalServiceInline(admin.TabularInline):
+    model = TripInquiryAdditionalService
+    extra = 0
+    autocomplete_fields = ('service',)
+
+
+class TripQuotationInline(admin.StackedInline):
+    model = TripQuotation
+    extra = 0
+    max_num = 1
+    readonly_fields = ('total_quotation', 'created_at', 'updated_at')
+
+
+@admin.register(TripInquiry)
+class TripInquiryAdmin(admin.ModelAdmin):
+    list_display = ('reference_id', 'name', 'customer_contact', 'departure_date', 'return_date', 'status', 'created_at')
+    list_filter = ('status', 'departure_date', 'budget_band', 'travel_style', 'places')
+    search_fields = ('reference_id', 'name', 'phone', 'email')
+    readonly_fields = ('reference_id', 'created_at', 'updated_at', 'travelers_total', 'nights', 'estimate_snapshot')
+    autocomplete_fields = ('stay_option', 'transport_option', 'budget_band', 'travel_style')
+    inlines = (TripInquiryPlaceInline, TripInquiryActivityInline, TripInquiryAdditionalServiceInline, TripQuotationInline)
+    list_select_related = ('stay_option', 'transport_option', 'budget_band', 'travel_style')
+    fieldsets = (
+        ('Customer', {'fields': ('reference_id', ('name', 'email'), ('phone_country_code', 'phone'))}),
+        ('Travel details', {'fields': (('departure_date', 'return_date'), ('adults', 'children', 'infants'), 'travelers_total', 'nights')}),
+        ('Preferences', {'fields': (('stay_option', 'transport_option'), ('budget_band', 'budget_scope'), 'travel_style', 'food_preferences', 'special_requests', 'accessibility_needs', 'additional_information')}),
+        ('Management', {'fields': ('status', 'admin_notes', 'estimate_snapshot', ('created_at', 'updated_at'))}),
+    )
+
+    @admin.display(description='Phone', ordering='phone')
+    def customer_contact(self, obj):
+        number = ''.join(character for character in f'{obj.phone_country_code}{obj.phone}' if character.isdigit())
+        return format_html('<a href="tel:+{}">{}</a> · <a href="https://wa.me/{}" target="_blank" rel="noopener">WhatsApp</a>', number, f'{obj.phone_country_code} {obj.phone}', number)
+
+
+@admin.register(PlannerPlace)
+class PlannerPlaceAdmin(admin.ModelAdmin):
+    list_display = ('name', 'region', 'is_active', 'sort_order')
+    list_filter = ('region', 'is_active')
+    search_fields = ('name', 'slug', 'description')
+    prepopulated_fields = {'slug': ('name',)}
+
+
+@admin.register(PlannerStayOption)
+class PlannerStayOptionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'estimate_per_night', 'is_active', 'sort_order')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'slug')
+
+
+@admin.register(PlannerTransportOption)
+class PlannerTransportOptionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'vehicle', 'estimate_per_day', 'is_active', 'sort_order')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'slug')
+
+
+@admin.register(PlannerActivity)
+class PlannerActivityAdmin(admin.ModelAdmin):
+    list_display = ('name', 'estimate_amount', 'is_active', 'sort_order')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'slug')
+
+
+@admin.register(PlannerAdditionalService)
+class PlannerAdditionalServiceAdmin(admin.ModelAdmin):
+    list_display = ('name', 'estimate_amount', 'is_active', 'sort_order')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'slug')
+
+
+@admin.register(PlannerBudgetBand)
+class PlannerBudgetBandAdmin(admin.ModelAdmin):
+    list_display = ('label', 'min_amount', 'max_amount', 'is_active', 'sort_order')
+    list_filter = ('is_active',)
+    search_fields = ('label', 'slug')
+
+
+@admin.register(PlannerTravelStyle)
+class PlannerTravelStyleAdmin(admin.ModelAdmin):
+    list_display = ('name', 'is_active', 'sort_order')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'slug')
+
+
+@admin.register(PlannerSeasonRate)
+class PlannerSeasonRateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'start_month', 'start_day', 'end_month', 'end_day', 'multiplier', 'is_active')
+    list_filter = ('is_active',)

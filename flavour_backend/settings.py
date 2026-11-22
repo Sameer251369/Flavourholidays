@@ -296,6 +296,16 @@ else:
 
 CORS_ALLOW_CREDENTIALS = True
 
+# Public custom trip enquiries are throttled independently from read-only APIs.
+REST_FRAMEWORK = {
+    'DEFAULT_THROTTLE_RATES': {
+        'trip_planner': '5/hour',
+    },
+}
+
+# Uses the business number already published by the frontend contact config.
+BUSINESS_WHATSAPP_NUMBER = os.environ.get('BUSINESS_WHATSAPP_NUMBER', '919797666859')
+
 
 # =========================================================
 # CSRF
