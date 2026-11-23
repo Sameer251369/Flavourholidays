@@ -8,7 +8,7 @@ from django.db import transaction
 
 from flavour_backend.cloudinary_utils import log_upload_failure
 from .models import (
-    Destination, Tour, TourPricing, TourCheckpoint, BlogPost, Vehicle, Inquiry,
+    Destination, Tour, TourPricing, TourCheckpoint, BlogPost, Vehicle, KashmirRouteFare, Inquiry,
     Testimonial, FAQ, PlannerPlace, PlannerStayOption, PlannerTransportOption,
     PlannerActivity, PlannerAdditionalService, PlannerBudgetBand, PlannerTravelStyle, PlannerSeasonRate,
     TripInquiry, TripInquiryPlace, TripInquiryActivity, TripInquiryAdditionalService, TripQuotation,
@@ -300,6 +300,16 @@ class VehicleAdmin(admin.ModelAdmin):
     list_display = ('name', 'model_name', 'rent_per_day', 'capacity_passengers', 'badge')
     search_fields = ('name', 'model_name', 'description')
     fields = ('name', 'model_name', 'rent_per_day', 'capacity_passengers', 'terrain_type', 'badge', 'description', 'image_file', 'image_url')
+
+
+@admin.register(KashmirRouteFare)
+class KashmirRouteFareAdmin(admin.ModelAdmin):
+    list_display = ('destination', 'sedan_price', 'innova_price', 'tempo_traveller_price', 'sort_order', 'is_active')
+    list_editable = ('sedan_price', 'innova_price', 'tempo_traveller_price', 'sort_order', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('destination',)
+    ordering = ('sort_order', 'id')
+    fields = ('destination', 'sedan_price', 'innova_price', 'tempo_traveller_price', 'sort_order', 'is_active')
 
 @admin.register(Inquiry)
 class InquiryAdmin(admin.ModelAdmin):

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.utils import timezone
 from .models import (
-    Destination, Tour, TourPricing, TourCheckpoint, BlogPost, Vehicle, Inquiry,
+    Destination, Tour, TourPricing, TourCheckpoint, BlogPost, Vehicle, KashmirRouteFare, Inquiry,
     BookingSearch, Testimonial, FAQ, PlannerPlace, PlannerStayOption,
     PlannerTransportOption, PlannerActivity, PlannerAdditionalService, PlannerBudgetBand,
     PlannerTravelStyle, TripInquiry, TripInquiryPlace, TripInquiryActivity,
@@ -121,6 +121,12 @@ class VehicleSerializer(serializers.ModelSerializer):
     def get_image_url(self, obj):
         request = self.context.get('request')
         return resolve_image_url(request, obj.display_image_url)
+
+
+class KashmirRouteFareSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KashmirRouteFare
+        fields = '__all__'
 
 class InquirySerializer(serializers.ModelSerializer):
     class Meta:

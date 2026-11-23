@@ -7,14 +7,14 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from .models import (
-    Destination, Tour, TourCheckpoint, BlogPost, Vehicle, Inquiry, BookingSearch,
+    Destination, Tour, TourCheckpoint, BlogPost, Vehicle, KashmirRouteFare, Inquiry, BookingSearch,
     Testimonial, FAQ, PlannerPlace, PlannerStayOption, PlannerTransportOption,
     PlannerActivity, PlannerAdditionalService, PlannerBudgetBand, PlannerTravelStyle, TripInquiry,
     PlannerSeasonRate, TripInquiryPlace, TripInquiryActivity, TripQuotation,
 )
 from .serializers import (
     DestinationSerializer, TourListSerializer, TourDetailSerializer,
-    TourCheckpointSerializer, BlogPostSerializer, VehicleSerializer,
+    TourCheckpointSerializer, BlogPostSerializer, VehicleSerializer, KashmirRouteFareSerializer,
     InquirySerializer, BookingSearchSerializer, TestimonialSerializer, FAQSerializer,
     PlannerPlaceSerializer, PlannerStayOptionSerializer, PlannerTransportOptionSerializer,
     PlannerActivitySerializer, PlannerAdditionalServiceSerializer, PlannerBudgetBandSerializer, PlannerTravelStyleSerializer,
@@ -184,6 +184,11 @@ class BlogPostViewSet(viewsets.ReadOnlyModelViewSet):
 class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
+
+
+class KashmirRouteFareViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = KashmirRouteFare.objects.filter(is_active=True)
+    serializer_class = KashmirRouteFareSerializer
 
 class InquiryViewSet(viewsets.ModelViewSet):
     queryset = Inquiry.objects.all()

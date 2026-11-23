@@ -312,6 +312,38 @@ class Vehicle(models.Model):
         return self.name
 
 
+class KashmirRouteFare(models.Model):
+    destination = models.CharField(max_length=180, unique=True)
+    sedan_price = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Price in Indian rupees (₹). Leave blank to show ‘Ask for quote’.",
+        verbose_name="Sedan (Etios/Swift Desire) (₹)",
+    )
+    innova_price = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Price in Indian rupees (₹). Leave blank to show ‘Ask for quote’.",
+        verbose_name="Innova (₹)",
+    )
+    tempo_traveller_price = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Price in Indian rupees (₹). Leave blank to show ‘Ask for quote’.",
+        verbose_name="Tempo Traveler (₹)",
+    )
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["sort_order", "id"]
+        verbose_name = "Kashmir taxi route fare"
+        verbose_name_plural = "Kashmir taxi route fares"
+
+    def __str__(self):
+        return self.destination
+
+
 class Inquiry(models.Model):
     name = models.CharField(max_length=100)
     email = models.EmailField()
