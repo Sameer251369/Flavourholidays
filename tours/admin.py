@@ -298,8 +298,8 @@ class BlogPostAdmin(admin.ModelAdmin):
 @admin.register(Vehicle)
 class VehicleAdmin(admin.ModelAdmin):
     list_display = ('name', 'model_name', 'rent_per_day', 'capacity_passengers', 'badge')
-    search_fields = ('name', 'model_name', 'description')
-    fields = ('name', 'model_name', 'rent_per_day', 'capacity_passengers', 'terrain_type', 'badge', 'description', 'image_file', 'image_url')
+    search_fields = ('name', 'model_name', 'route_description', 'description')
+    fields = ('name', 'model_name', 'rent_per_day', 'capacity_passengers', 'terrain_type', 'badge', 'route_description', 'description', 'image_file', 'image_url')
 
 
 @admin.register(KashmirRouteFare)

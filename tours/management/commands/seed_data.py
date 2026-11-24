@@ -474,6 +474,7 @@ Winter in Kashmir transforms the valley into a surreal white wonderland. Tempera
             model_name="Thar 4x4 / Scorpio N",
             capacity_passengers="4 Passengers",
             terrain_type="Winter Snow & High Altitude Mountain Roads (Zoji La, Khardung La)",
+            route_description="Srinagar, Tangmarg and Gulmarg, with onward winter routes to Kargil and Ladakh when roads are open.",
             description="A capable 4WD for mountain routes between Tangmarg, Kargil and Ladakh, with local drivers familiar with changing road conditions.",
             image_url="https://flavourholidays.com/wp-content/uploads/2026/08/thar-1.png",
             badge="4x4 Snow Beast ⚡"
@@ -484,6 +485,7 @@ Winter in Kashmir transforms the valley into a surreal white wonderland. Tempera
             model_name="Innova Crysta GX / VX",
             capacity_passengers="6 - 7 Passengers + Driver",
             terrain_type="Long Mountain Drives & Luxury Highway Cruising",
+            route_description="Comfortable Srinagar airport transfers and longer journeys to Pahalgam, Sonamarg and Gulmarg.",
             description="Ultra-comfortable luxury MPV with captain seats, dual AC, and maximum boot space for mountain luggage.",
             image_url="https://flavourholidays.com/wp-content/uploads/2026/08/crysta_gx_7s_d_attitude_black_mica_base.webp",
             badge="Luxury Cruiser ✨"
@@ -494,6 +496,7 @@ Winter in Kashmir transforms the valley into a surreal white wonderland. Tempera
             model_name="Force Tempo Traveller Luxury Edition",
             capacity_passengers="12 to 26 Passengers",
             terrain_type="Group Adventures & Corporate Expeditions",
+            route_description="Group transfers and multi-day itineraries between Srinagar, Gulmarg, Pahalgam, Kargil and Ladakh.",
             description="Pushback seats, charging points, individual AC vents, and heavy-duty luggage racks for squad travel.",
             image_url="https://flavourholidays.com/wp-content/uploads/2026/08/exterior-4-1_enhanced-removebg-preview-1.png",
             badge="Squad Explorer 🚌"

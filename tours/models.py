@@ -284,6 +284,12 @@ class Vehicle(models.Model):
         max_length=150
     )
 
+    route_description = models.TextField(
+        blank=True,
+        default="",
+        help_text="Routes this vehicle is suited for, shown in the homepage fleet table.",
+    )
+
     description = models.TextField()
 
     image_file = models.ImageField(
