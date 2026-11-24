@@ -290,8 +290,6 @@ class Vehicle(models.Model):
         help_text="Routes this vehicle is suited for, shown in the homepage fleet table.",
     )
 
-    description = models.TextField()
-
     image_file = models.ImageField(
         upload_to="vehicles/",
         blank=True,
